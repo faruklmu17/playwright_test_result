@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Playwright Test Results",
   "version": "1.0",
-  "description": "View Playwright test results from a local file",
+  "description": "View Playwright test results from a local file or GitHub repository",
   "background": {
     "service_worker": "background.js"
   },
@@ -15,9 +15,11 @@
     }
   },
   "permissions": [
-    "storage"
+    "storage",
+    "activeTab"
   ],
   "host_permissions": [
-    "file:///*"
+    "file:///*",
+    "https://raw.githubusercontent.com/*"
   ]
 }

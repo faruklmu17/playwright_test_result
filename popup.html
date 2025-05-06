@@ -1,24 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Playwright Test Results</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    #results { margin-top: 20px; }
+  </style>
 </head>
 <body>
-  <h1>Upload Playwright Test Results</h1>
-
-  <!-- File input element for uploading JSON -->
-  <input type="file" id="upload" />
-
-  <!-- Displaying the passed and failed count -->
-  <div>
-    <p>Passed: <span id="passed">0</span></p>
-    <p>Failed: <span id="failed">0</span></p>
-  </div>
-
-  <!-- Include the script tag here, ensuring it's at the end of the body -->
+  <h1>Test Results</h1>
+  <div id="results">Loading test results...</div>
   <script src="popup.js"></script>
 </body>
 </html>
-

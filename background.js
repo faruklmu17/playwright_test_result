@@ -1,33 +1,56 @@
-// Function to update the extension badge with pass/fail info
-function updateBadge(passCount, failCount) {
-  // If there are any failed tests, show a red badge with the number of failures
-  if (failCount > 0) {
-    chrome.action.setBadgeBackgroundColor({ color: 'red' });
-    chrome.action.setBadgeText({ text: `${failCount}` });
-  } else {
-    // Otherwise, show a green badge with the number of passed tests
-    chrome.action.setBadgeBackgroundColor({ color: 'green' });
-    chrome.action.setBadgeText({ text: `${passCount}` });
+// Function to calculate the number of passed and failed tests
+function calculateResults(data) {
+  let passed = 0;
+  let failed = 0;
+
+  // Check if the 'rows' array exists and is an array
+  if (data.rows && Array.isArray(data.rows)) {
+    data.rows.forEach((suite) => {
+      suite.subs.forEach((spec) => {
+        spec.subs.forEach((test) => {
+          // Count 'passed' and 'failed' results based on test status
+          if (test.status === "passed") {
+            passed++;
+          } else if (test.status === "failed") {
+            failed++;
+          }
+        });
+      });
+    });
   }
+
+  return { passed, failed };
 }
 
-// Listen for messages to update badge or store test results
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Update results when the "updateResults" action is received
-  if (message.action === 'updateResults') {
-    const { passCount, failCount } = message.data;
-    updateBadge(passCount, failCount); // Update the badge with the counts
-    chrome.storage.local.set({ testResults: message.data }, () => {
-      console.log('Test results saved');
-    });
-    sendResponse({ success: true });
-  } 
-  // Retrieve stored test results when the "getResults" action is received
-  else if (message.action === 'getResults') {
-    chrome.storage.local.get('testResults', (data) => {
-      // Send the results back to the sender (usually the popup)
-      sendResponse(data.testResults || { passCount: 0, failCount: 0 });
-    });
-    return true; // Keep the message channel open for async response
-  }
+// Listen for requests from the popup to update the icon
+chrome.runtime.onInstalled.addListener(() => {
+  // GitHub raw URL for the JSON file with test results
+  const testResultFileUrl = 'https://raw.githubusercontent.com/faruklmu17/ci_testing/refs/heads/main/monocart-report/index.json';
+
+  // Fetch the JSON file from GitHub
+  fetch(testResultFileUrl)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch test results');
+      }
+      return response.json();
+    })
+    .then((data) => {
+      const { passed, failed } = calculateResults(data);
+
+      // Instead of dynamic icon paths, use a fixed icon and just update the badge
+      chrome.action.setIcon({ path: {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+      }});
+
+      // Update the badge text with the counts
+      chrome.action.setBadgeText({ text: `${passed}/${failed}` });
+      // Set badge color based on test results
+      chrome.action.setBadgeBackgroundColor({ 
+        color: failed > 0 ? '#F44336' : '#4CAF50' 
+      });
+    })
+    .catch((error) => console.error('Error loading test results:', error));
 });

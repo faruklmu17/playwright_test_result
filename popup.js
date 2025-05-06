@@ -24,6 +24,8 @@ function calculateResults(data) {
 
 // When the popup is opened, fetch the test results from the GitHub URL
 document.addEventListener('DOMContentLoaded', () => {
+  const resultsDiv = document.getElementById('results');
+  
   // Define the raw URL of the JSON file in your GitHub repository
   const jsonUrl = 'https://raw.githubusercontent.com/faruklmu17/ci_testing/refs/heads/main/monocart-report/index.json';
 
@@ -38,12 +40,32 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(data => {
       // Calculate the passed and failed tests based on the fetched data
       const { passed, failed } = calculateResults(data);
-
-      // Update the results on the popup
-      document.getElementById('results').innerText = `Passed: ${passed}, Failed: ${failed}`;
+      const total = passed + failed;
+      const badgeColor = failed > 0 ? '#F44336' : '#4CAF50';
+      
+      // Create a more visually appealing display
+      resultsDiv.innerHTML = `
+        <div class="results-card">
+          <div class="results-header">Test Summary</div>
+          <div class="results-body">
+            <div class="stats">
+              <div class="stat-box passed">${passed} Passed</div>
+              <div class="stat-box ${failed > 0 ? 'failed' : 'failed'}" 
+                   style="${failed === 0 ? 'background: linear-gradient(135deg, #9E9E9E, #757575);' : ''}">
+                ${failed} Failed
+              </div>
+            </div>
+            <div class="total">Total: ${total} tests</div>
+            
+            <div class="badge-preview" style="background-color: ${badgeColor}; color: white;">
+              ${passed}/${failed}
+            </div>
+          </div>
+        </div>
+      `;
     })
     .catch(error => {
       // Handle any errors during the fetch or result processing
-      document.getElementById('results').innerText = `Error: ${error.message}`;
+      resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
     });
 });

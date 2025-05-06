@@ -47,10 +47,14 @@ chrome.runtime.onInstalled.addListener(() => {
 
       // Update the badge text with the counts
       chrome.action.setBadgeText({ text: `${passed}/${failed}` });
-      // Set badge color based on test results
+
+      // Set badge color based on test results - more vibrant colors
       chrome.action.setBadgeBackgroundColor({ 
-        color: failed > 0 ? '#F44336' : '#4CAF50' 
+        color: failed > 0 ? '#FF1744' : '#00C853'  // Brighter red and green
       });
+
+      // Make badge text more visible
+      chrome.action.setBadgeTextColor({ color: '#FFFFFF' });
     })
     .catch((error) => console.error('Error loading test results:', error));
 });

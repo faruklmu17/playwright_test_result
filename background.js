@@ -22,10 +22,9 @@ function calculateResults(data) {
   return { passed, failed };
 }
 
-// Listen for requests from the popup to update the icon
-chrome.runtime.onInstalled.addListener(() => {
-  // GitHub raw URL for the JSON file with test results
-  const testResultFileUrl = 'https://raw.githubusercontent.com/faruklmu17/ci_testing/refs/heads/main/monocart-report/index.json';
+// Function to fetch and update the badge text
+function updateBadge() {
+  const testResultFileUrl = 'https://raw.githubusercontent.com/faruklmu17/ci_testing/refs/heads/main/monocart-report/index.json?timestamp=' + new Date().getTime();
 
   // Fetch the JSON file from GitHub
   fetch(testResultFileUrl)
@@ -38,18 +37,13 @@ chrome.runtime.onInstalled.addListener(() => {
     .then((data) => {
       const { passed, failed } = calculateResults(data);
 
-      // Instead of dynamic icon paths, use a fixed icon and just update the badge
-      chrome.action.setIcon({ path: {
-        "16": "icons/icon16.png",
-        "48": "icons/icon48.png",
-        "128": "icons/icon128.png"
-      }});
+      // Update the badge text with the counts (limit to 4 characters)
+      const badgeText = `${passed} / ${failed > 9 ? '9+' : failed}`;
 
-      // Update the badge text with the counts
-      chrome.action.setBadgeText({ text: `${passed}/${failed}` });
+      chrome.action.setBadgeText({ text: badgeText });
 
       // Set badge color based on test results - more vibrant colors
-      chrome.action.setBadgeBackgroundColor({ 
+      chrome.action.setBadgeBackgroundColor({
         color: failed > 0 ? '#FF1744' : '#00C853'  // Brighter red and green
       });
 
@@ -57,4 +51,13 @@ chrome.runtime.onInstalled.addListener(() => {
       chrome.action.setBadgeTextColor({ color: '#FFFFFF' });
     })
     .catch((error) => console.error('Error loading test results:', error));
+}
+
+// Periodically update the badge every 30 seconds
+setInterval(updateBadge, 30000);
+
+// Initial badge update on installation or extension reload
+chrome.runtime.onInstalled.addListener(() => {
+  console.log("Extension Installed or Reloaded, updating badge...");
+  updateBadge();
 });

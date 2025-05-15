@@ -1,14 +1,14 @@
 
 # 📊 Playwright Test Results Chrome Extension
 
-This Chrome extension displays the number of **passed Playwright tests** as a badge on your browser toolbar. It fetches test results from a GitHub-hosted JSON file and auto-updates every minute.
+This Chrome extension displays the number of **passed Playwright tests** on your browser toolbar. It fetches test results from a GitHub-hosted JSON file and auto-updates every minute.
 
 ---
 
 ## ⚠️ Current Limitation
 
 > 🟢 **This version only shows passed test results**.  
-> It assumes that the `results.json` file is only updated when **all tests pass**.  
+> It assumes that the `index.json` file is only updated when **all tests pass**.  
 > If your Playwright run fails and does **not upload new results**, the badge will remain unchanged.
 
 A future version will include support for tracking failed tests and showing a red badge.
@@ -31,31 +31,15 @@ Add `monocart-reporter` alongside any other reporters you use (e.g., `list`, `ht
 
 ```js
 reporter: [
-  ['list'],
+  ['HTML'],
   ['monocart-reporter', {
     name: "My Test Report",
-    outputFile: './monocart-report/results.json'  // Must match your GitHub upload path
+    outputFile: './monocart-report/index.json'  // Must match your GitHub upload path
   }]
 ]
 ```
 
-> ✅ This generates a `results.json` file after each test run, which the extension reads.
-
----
-
-## 📁 Project Structure
-
-```
-extension/
-│
-├── icons/                  # Toolbar icons
-│   └── icon128.png
-├── background.js           # Auto-fetches JSON and updates badge
-├── popup.html              # Optional popup UI
-├── popup.js                # Optional: manual display of results
-├── manifest.json           # Extension config
-└── README.md               # You're here!
-```
+> ✅ This generates an `index.json` file after each test run, which the extension reads.
 
 ---
 
@@ -79,13 +63,14 @@ extension/
 
 ## 🔁 How It Works
 
-* The extension fetches your `results.json` file from GitHub every 1 minute.
-* If new results are found (based on content changes):
+* The extension fetches your `index.json` file from GitHub every 1 minute.
+* When you click the badge:
 
-  * The badge updates to show the number of passed tests.
-  * A Chrome notification optionally alerts you.
+  * A popup shows the number of passed and failed tests.
+  * A "Refresh" button lets you manually update.
+  * The popup shows a timestamp of the last update.
 
-> 📄 Note: The `results.json` must be publicly available on GitHub.
+> 📄 Note: The `index.json` must be publicly available on GitHub.
 
 ---
 
@@ -94,10 +79,63 @@ extension/
 In `background.js`, replace this line:
 
 ```js
-fetch("https://raw.githubusercontent.com/your-username/your-repo/main/monocart-report/results.json")
+fetch("https://raw.githubusercontent.com/your-username/your-repo/main/monocart-report/index.json")
 ```
 
 with your actual public GitHub raw file URL.
+
+---
+
+## 🔄 Required GitHub Action (Auto-Publish `index.json`)
+
+You must configure a GitHub Action to **run your Playwright tests** and **upload the Monocart report** (`index.json`) to the repository whenever there's a push or pull request.
+
+Create a file at `.github/workflows/playwright.yml` with the following content:
+
+```yaml
+name: Playwright test
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup node.js
+        uses: actions/setup-node@v3
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npx playwright test
+        env:
+          CI: 'true'
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload Monocart report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monocart-report
+          path: monocart-report/
+          retention-days: 30
+```
+
+> 📝 **Important:**
+> This setup uploads the test report as an artifact. If you want the extension to access it via GitHub raw URL, you'll need to push the file directly to the repo in a branch or in `gh-pages`.
 
 ---
 

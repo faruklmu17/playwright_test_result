@@ -1,19 +1,19 @@
-// Function to calculate the number of passed and failed tests
+// Function to calculate the number of passed and failed tests from Playwright JSON
 function calculateResults(data) {
   let passed = 0;
   let failed = 0;
 
-  // Check if the 'rows' array exists and is an array
-  if (data.rows && Array.isArray(data.rows)) {
-    data.rows.forEach((suite) => {
-      suite.subs.forEach((spec) => {
-        spec.subs.forEach((test) => {
-          // Count 'passed' and 'failed' results based on test status
-          if (test.status === "passed") {
-            passed++;
-          } else if (test.status === "failed") {
-            failed++;
-          }
+  if (data.suites && Array.isArray(data.suites)) {
+    data.suites.forEach((suite) => {
+      suite.specs?.forEach((spec) => {
+        spec.tests?.forEach((test) => {
+          test.results?.forEach((result) => {
+            if (result.status === "passed") {
+              passed++;
+            } else if (result.status === "failed") {
+              failed++;
+            }
+          });
         });
       });
     });
@@ -22,50 +22,88 @@ function calculateResults(data) {
   return { passed, failed };
 }
 
-// When the popup is opened, fetch the test results from the GitHub URL
-document.addEventListener('DOMContentLoaded', () => {
-  const resultsDiv = document.getElementById('results');
-  
-  // Define the raw URL of the JSON file in your GitHub repository
-  const jsonUrl = 'https://raw.githubusercontent.com/faruklmu17/ci_testing/refs/heads/main/monocart-report/index.json';
+// Update the popup UI with test results
+function updateUI({ passed, failed }) {
+  const total = passed + failed;
+  const badgeColor = failed > 0 ? "#F44336" : "#4CAF50";
 
-  // Fetch the JSON data from GitHub
-  fetch(jsonUrl)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Failed to fetch test results from GitHub.');
-      }
-      return response.json();
-    })
-    .then(data => {
-      // Calculate the passed and failed tests based on the fetched data
-      const { passed, failed } = calculateResults(data);
-      const total = passed + failed;
-      const badgeColor = failed > 0 ? '#F44336' : '#4CAF50';
-      
-      // Create a more visually appealing display
-      resultsDiv.innerHTML = `
-        <div class="results-card">
-          <div class="results-header">Test Summary</div>
-          <div class="results-body">
-            <div class="stats">
-              <div class="stat-box passed">${passed} Passed</div>
-              <div class="stat-box ${failed > 0 ? 'failed' : 'failed'}" 
-                   style="${failed === 0 ? 'background: linear-gradient(135deg, #9E9E9E, #757575);' : ''}">
-                ${failed} Failed
-              </div>
-            </div>
-            <div class="total">Total: ${total} tests</div>
-            
-            <div class="badge-preview" style="background-color: ${badgeColor}; color: white;">
-              ${passed}/${failed}
-            </div>
-          </div>
+  const resultsDiv = document.getElementById("results");
+  resultsDiv.innerHTML = `
+    <div class="results-card">
+      <div class="results-header">Test Summary</div>
+      <div class="results-body">
+        <div class="stats">
+          <div class="stat-box passed">${passed} Passed</div>
+          <div class="stat-box failed">${failed} Failed</div>
         </div>
-      `;
+        <div class="total">Total: ${total} tests</div>
+        <div class="badge-preview" style="background-color: ${badgeColor}; color: white;">
+          ${passed}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Show loading or error message
+function showMessage(message, isError = false) {
+  const resultsDiv = document.getElementById("results");
+  resultsDiv.innerHTML = `
+    <div class="${isError ? "error" : "loading"}">${message}</div>
+  `;
+}
+
+// Fetch test results and display
+function fetchTestResults(url) {
+  if (!url || !url.startsWith("http")) {
+    showMessage("Invalid or missing URL.", true);
+    return;
+  }
+
+  showMessage("Loading test results...");
+  fetch(url)
+    .then((res) => {
+      if (!res.ok) throw new Error("Failed to fetch test results");
+      return res.json();
     })
-    .catch(error => {
-      // Handle any errors during the fetch or result processing
-      resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+    .then((data) => {
+      const { passed, failed } = calculateResults(data);
+      updateUI({ passed, failed });
+    })
+    .catch((err) => {
+      console.error(err);
+      showMessage("Error loading test results.", true);
     });
+}
+
+// Load URL from storage on popup open
+document.addEventListener("DOMContentLoaded", () => {
+  const input = document.getElementById("jsonUrl");
+
+  chrome.storage.sync.get("testJsonUrl", (result) => {
+    const savedUrl = result.testJsonUrl;
+    if (savedUrl) {
+      input.value = savedUrl;
+      fetchTestResults(savedUrl);
+    } else {
+      showMessage("Please enter a GitHub raw JSON URL.");
+    }
+  });
+});
+
+// Save new URL on button click
+document.getElementById("save").addEventListener("click", () => {
+  const input = document.getElementById("jsonUrl").value.trim();
+
+  if (!input.startsWith("http")) {
+    alert("Please enter a valid URL.");
+    return;
+  }
+
+  chrome.storage.sync.set({ testJsonUrl: input }, () => {
+    // ✅ Refresh UI immediately
+    fetchTestResults(input);
+    // ✅ Also refresh the badge
+    chrome.runtime.sendMessage({ type: "refreshBadge" });
+  });
 });

@@ -22,9 +22,11 @@ A Chrome extension that displays **Playwright test results** from a JSON file ho
 ### 1. Clone this repo
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/playwright-test-viewer-extension.git
+git clone https://github.com/faruklmu17/playwright-test-viewer-extension.git
 cd playwright-test-viewer-extension
 ````
+
+✅ All the latest code is available in the `main` branch — no need to switch branches.
 
 ### 2. Open Chrome and go to:
 
@@ -59,38 +61,58 @@ Push your `test-results.json` file to your repo, e.g.:
 https://raw.githubusercontent.com/your-username/your-repo/main/tests/test-results.json
 ```
 
-> Make sure your repo (or just the file) is public so the extension can access it without authentication.
+> Make sure your repo (or at least the file) is public so the extension can access it without authentication.
 
 ### ✅ Step 3: Set the URL in the extension
 
-1. Click the extension icon (after installing)
+1. Click the extension icon 🧩
 2. Paste your raw JSON URL into the input field
 3. Click **Save**
 4. The popup will immediately fetch and display the test summary
 
 ---
 
+## 🧪 Test Repo to Try This Extension
+
+Want to see how the extension works with real Playwright test results?
+
+👉 Use this test repo:
+**[▶️ browser\_extension\_test (GitHub)](https://github.com/faruklmu17/browser_extension_test)**
+
+It includes:
+
+* A working Playwright setup
+* A JSON test report file at:
+  [https://raw.githubusercontent.com/faruklmu17/browser\_extension\_test/main/tests/test-results.json](https://raw.githubusercontent.com/faruklmu17/browser_extension_test/main/tests/test-results.json)
+* A GitHub Actions workflow that generates the report on every push
+
+> You can paste that raw link into the extension popup to instantly see test results in action.
+
+---
+
 ## 📊 How It Works
 
-- 🟪 The extension badge always shows the label `"Test"`
-- 🟩 **Green badge** = all tests passed
-- 🟥 **Red badge** = one or more tests failed (based on JSON contents)
-- 🔁 Badge auto-refreshes every 5 minutes using your configured raw JSON URL
+* 🟪 The extension badge **always** shows the label `"Test"`
+* 🟩 **Green badge** = all tests passed
+* 🟥 **Red badge** = one or more tests failed (based on JSON contents)
+* 🔁 Badge auto-refreshes every 5 minutes using your configured raw JSON URL
 
-> ⚠️ **Note on failed tests:**  
-If your CI/CD pipeline is set to **skip deployment when tests fail**, the `test-results.json` file will not be updated.  
-As a result, the badge and popup will continue to reflect the **last successful test result** (usually all passed), not the failure.
+> ⚠️ **Note on failed tests:**
+> If your CI/CD pipeline is set to **skip deployment when tests fail**, the `test-results.json` file will not be updated.
+> As a result, the badge and popup will continue to reflect the **last successful test result** (usually all passed), not the failure.
 
 To display failed tests in the extension:
-- Either allow test-result reporting even on failures
-- Or create a separate GitHub Action step that always commits the JSON regardless of test outcome
 
+* Either allow test-result reporting even on failures
+* Or create a separate GitHub Action step that always commits the JSON regardless of test outcome
+
+---
 
 ## 🔐 Security & Privacy Notes
 
 * ✅ Your data stays local — the extension only fetches the JSON you configure
 * ✅ Does **not** require access to tabs or page content
-* ⚠️ Do **not** include sensitive data (like API keys or credentials) in your test-results.json
+* ⚠️ Do **not** include sensitive data (like API keys or credentials) in your `test-results.json`
 * ✅ MIT License protects you from liability (see below)
 
 ---
@@ -118,3 +140,5 @@ Badge inspired by GitHub Actions, test dashboards, and everyday QA tooling.
 * Add notification when failures are detected
 * Support for multiple URLs or environments
 * Optional GitHub Pages hosting of test results
+
+

@@ -1,166 +1,120 @@
 
-# 📊 Playwright Test Results Chrome Extension
+# 🔍 Playwright Test Result Viewer – Chrome Extension
 
-This Chrome extension displays the number of **passed Playwright tests** on your browser toolbar. It fetches test results from a GitHub-hosted JSON file and auto-updates every minute.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
----
-
-## ⚠️ Current Limitation
-
-> 🟢 **This version only shows passed test results**.  
-> It assumes that the `index.json` file is only updated when **all tests pass**.  
-> If your Playwright run fails and does **not upload new results**, the badge will remain unchanged.
-
-A future version will include support for tracking failed tests and showing a red badge.
+A Chrome extension that displays **Playwright test results** from a JSON file hosted on GitHub (or any public URL). The extension badge shows a fixed label ("Test"), and clicking the icon opens a popup that shows the actual pass/fail summary.
 
 ---
 
-## 🧩 Requirements (Monocart Reporter Setup)
+## 📦 Features
 
-To generate structured JSON test results for this extension, you'll need to install [Monocart Reporter](https://github.com/cenfun/monocart-reporter) and configure it in your Playwright project.
+- ✅ Click the badge to view the number of **passed and failed** Playwright tests
+- ✅ Fetches test results from a **raw JSON file** hosted on GitHub or any public URL
+- ✅ User-configurable JSON URL (no code change required)
+- ✅ Auto-refreshes every 5 minutes
+- ✅ Visual badge with fixed label (text says `Test`, color reflects test status)
 
-### 🛠 Step 1: Install Monocart
+---
+
+## 🚀 How to Use Locally
+
+### 1. Clone this repo
 
 ```bash
-npm install -D monocart-reporter
+git clone https://github.com/YOUR_USERNAME/playwright-test-viewer-extension.git
+cd playwright-test-viewer-extension
 ````
 
-### 🛠 Step 2: Update `playwright.config.js`
+### 2. Open Chrome and go to:
 
-Add `monocart-reporter` alongside any other reporters you use (e.g., `list`, `html`):
+```
+chrome://extensions/
+```
 
-```js
+### 3. Enable **Developer mode** (top right)
+
+### 4. Click **"Load unpacked"** and select the folder you just cloned
+
+---
+
+## 🔧 How to Configure It
+
+### ✅ Step 1: Generate a Playwright JSON report
+
+In your `playwright.config.ts`, add the following reporter setup:
+
+```ts
 reporter: [
-  ['HTML'],
-  ['monocart-reporter', {
-    name: "My Test Report",
-    outputFile: './monocart-report/index.json'  // Must match your GitHub upload path
-  }]
+  ['html'],
+  ['json', { outputFile: 'tests/test-results.json' }]
 ]
 ```
 
-> ✅ This generates an `index.json` file after each test run, which the extension reads.
+### ✅ Step 2: Commit & Push to GitHub
 
----
+Push your `test-results.json` file to your repo, e.g.:
 
-## 🔧 Setup Instructions (Chrome Extension)
-
-1. Clone or download this repo.
-
-2. Open Chrome and go to:
-
-   ```
-   chrome://extensions/
-   ```
-
-3. Enable **Developer Mode**.
-
-4. Click **"Load unpacked"** and select the `extension` folder.
-
-5. The extension icon will appear in the toolbar with a test badge.
-
----
-
-## 🔁 How It Works
-
-* The extension fetches your `index.json` file from GitHub every 1 minute.
-* When you click the badge:
-
-  * A popup shows the number of passed and failed tests.
-  * A "Refresh" button lets you manually update.
-  * The popup shows a timestamp of the last update.
-
-> 📄 Note: The `index.json` must be publicly available on GitHub.
-
----
-
-## 🔗 GitHub Raw File Configuration
-
-In `background.js`, replace this line:
-
-```js
-fetch("https://raw.githubusercontent.com/your-username/your-repo/main/monocart-report/index.json")
+```
+https://raw.githubusercontent.com/your-username/your-repo/main/tests/test-results.json
 ```
 
-with your actual public GitHub raw file URL.
+> Make sure your repo (or just the file) is public so the extension can access it without authentication.
+
+### ✅ Step 3: Set the URL in the extension
+
+1. Click the extension icon (after installing)
+2. Paste your raw JSON URL into the input field
+3. Click **Save**
+4. The popup will immediately fetch and display the test summary
 
 ---
 
-## 🔄 Required GitHub Action (Auto-Publish `index.json`)
+## 📊 How It Works
 
-You must configure a GitHub Action to **run your Playwright tests** and **upload the Monocart report** (`index.json`) to the repository whenever there's a push or pull request.
+- 🟪 The extension badge always shows the label `"Test"`
+- 🟩 **Green badge** = all tests passed
+- 🟥 **Red badge** = one or more tests failed (based on JSON contents)
+- 🔁 Badge auto-refreshes every 5 minutes using your configured raw JSON URL
 
-Create a file at `.github/workflows/playwright.yml` with the following content:
+> ⚠️ **Note on failed tests:**  
+If your CI/CD pipeline is set to **skip deployment when tests fail**, the `test-results.json` file will not be updated.  
+As a result, the badge and popup will continue to reflect the **last successful test result** (usually all passed), not the failure.
 
-```yaml
-name: Playwright test
-on: [push, pull_request]
+To display failed tests in the extension:
+- Either allow test-result reporting even on failures
+- Or create a separate GitHub Action step that always commits the JSON regardless of test outcome
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
 
-      - name: Setup node.js
-        uses: actions/setup-node@v3
+## 🔐 Security & Privacy Notes
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-
-      - name: Run Playwright tests
-        run: npx playwright test
-        env:
-          CI: 'true'
-
-      - name: Upload Playwright report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
-
-      - name: Upload Monocart report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: monocart-report
-          path: monocart-report/
-          retention-days: 30
-```
-
-> 📝 **Important:**
-> This setup uploads the test report as an artifact. If you want the extension to access it via GitHub raw URL, you'll need to push the file directly to the repo in a branch or in `gh-pages`.
+* ✅ Your data stays local — the extension only fetches the JSON you configure
+* ✅ Does **not** require access to tabs or page content
+* ⚠️ Do **not** include sensitive data (like API keys or credentials) in your test-results.json
+* ✅ MIT License protects you from liability (see below)
 
 ---
 
-## 📜 Manifest Permissions
+## 📄 License
 
-Your `manifest.json` should include:
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-```json
-"permissions": ["alarms", "notifications", "storage"],
-"host_permissions": ["https://raw.githubusercontent.com/*"]
-```
+This project is licensed under the MIT License — see the [LICENSE](./LICENSE) file for full details.
 
----
-
-## 🧑‍💻 Author
-
-Created by [Faruk Hasan](https://github.com/faruklmu17) — QA Engineer and Automation Enthusiast
+> You're free to use, modify, and distribute it. The software is provided **as-is**, without warranty — meaning you're not responsible if something breaks or doesn't work for others.
 
 ---
 
-## 📌 Roadmap
+## 🙌 Credits
 
-* ✅ Show passed test counts
-* ❌ (Coming Soon) Red badge for failed tests
-* 🔔 Auto notifications for new test runs
-* 🖼️ Optional popup to show full result list
+Created by [Faruk Hasan](https://github.com/faruklmu17)
+Powered by [Playwright](https://playwright.dev/)
+Badge inspired by GitHub Actions, test dashboards, and everyday QA tooling.
 
 ---
+
+## 💡 Future Improvements (Feel free to contribute!)
+
+* Add notification when failures are detected
+* Support for multiple URLs or environments
+* Optional GitHub Pages hosting of test results

@@ -1,4 +1,3 @@
-// Function to calculate the number of passed and failed tests from Playwright JSON
 function calculateResults(data) {
   let passed = 0;
   let failed = 0;
@@ -8,11 +7,8 @@ function calculateResults(data) {
       suite.specs?.forEach((spec) => {
         spec.tests?.forEach((test) => {
           test.results?.forEach((result) => {
-            if (result.status === "passed") {
-              passed++;
-            } else if (result.status === "failed") {
-              failed++;
-            }
+            if (result.status === "passed") passed++;
+            else if (result.status === "failed") failed++;
           });
         });
       });
@@ -22,12 +18,33 @@ function calculateResults(data) {
   return { passed, failed };
 }
 
-// Update the popup UI with test results
-function updateUI({ passed, failed }) {
+function formatTimeAgo(isoString) {
+  if (!isoString) return "";
+  const now = new Date();
+  const then = new Date(isoString);
+  const diffMs = now - then;
+  const mins = Math.floor(diffMs / 60000);
+
+  if (mins < 1) return "just now";
+  if (mins === 1) return "1 minute ago";
+  return `${mins} minutes ago`;
+}
+
+function updateUI({ passed, failed }, startTime = null) {
   const total = passed + failed;
   const badgeColor = failed > 0 ? "#F44336" : "#4CAF50";
 
+  const timestamp = startTime
+    ? `<div class="timestamp">Last updated: ${formatTimeAgo(startTime)}</div>`
+    : "";
+
   const resultsDiv = document.getElementById("results");
+
+  if (total === 0) {
+    resultsDiv.innerHTML = `<div class='loading'>No test results found in the file.</div>`;
+    return;
+  }
+
   resultsDiv.innerHTML = `
     <div class="results-card">
       <div class="results-header">Test Summary</div>
@@ -37,6 +54,7 @@ function updateUI({ passed, failed }) {
           <div class="stat-box failed">${failed} Failed</div>
         </div>
         <div class="total">Total: ${total} tests</div>
+        ${timestamp}
         <div class="badge-preview" style="background-color: ${badgeColor}; color: white;">
           ${passed}
         </div>
@@ -45,7 +63,6 @@ function updateUI({ passed, failed }) {
   `;
 }
 
-// Show loading or error message
 function showMessage(message, isError = false) {
   const resultsDiv = document.getElementById("results");
   resultsDiv.innerHTML = `
@@ -53,7 +70,6 @@ function showMessage(message, isError = false) {
   `;
 }
 
-// Fetch test results and display
 function fetchTestResults(url) {
   if (!url || !url.startsWith("http")) {
     showMessage("Invalid or missing URL.", true);
@@ -61,14 +77,16 @@ function fetchTestResults(url) {
   }
 
   showMessage("Loading test results...");
+
   fetch(url)
     .then((res) => {
       if (!res.ok) throw new Error("Failed to fetch test results");
       return res.json();
     })
     .then((data) => {
-      const { passed, failed } = calculateResults(data);
-      updateUI({ passed, failed });
+      const newResults = calculateResults(data);
+      const startTime = data.stats?.startTime || null;
+      updateUI(newResults, startTime);
     })
     .catch((err) => {
       console.error(err);
@@ -76,7 +94,6 @@ function fetchTestResults(url) {
     });
 }
 
-// Load URL from storage on popup open
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("jsonUrl");
 
@@ -91,7 +108,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// Save new URL on button click
 document.getElementById("save").addEventListener("click", () => {
   const input = document.getElementById("jsonUrl").value.trim();
 
@@ -101,9 +117,7 @@ document.getElementById("save").addEventListener("click", () => {
   }
 
   chrome.storage.sync.set({ testJsonUrl: input }, () => {
-    // ✅ Refresh UI immediately
     fetchTestResults(input);
-    // ✅ Also refresh the badge
     chrome.runtime.sendMessage({ type: "refreshBadge" });
   });
 });

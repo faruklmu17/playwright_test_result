@@ -8,11 +8,8 @@ function calculateResults(data) {
       suite.specs?.forEach((spec) => {
         spec.tests?.forEach((test) => {
           test.results?.forEach((result) => {
-            if (result.status === "passed") {
-              passed++;
-            } else if (result.status === "failed") {
-              failed++;
-            }
+            if (result.status === "passed") passed++;
+            if (result.status === "failed") failed++;
           });
         });
       });
@@ -22,7 +19,7 @@ function calculateResults(data) {
   return { passed, failed };
 }
 
-// Fetch and update badge
+// Fetch and update badge using data.stats.startTime
 function fetchAndUpdateBadge() {
   chrome.storage.sync.get("testJsonUrl", (result) => {
     const testResultFileUrl = result.testJsonUrl;
@@ -36,26 +33,30 @@ function fetchAndUpdateBadge() {
 
     fetch(testResultFileUrl)
       .then((response) => {
-        if (!response.ok) {
-          throw new Error("Failed to fetch test results");
-        }
+        if (!response.ok) throw new Error("Failed to fetch test results");
         return response.json();
       })
       .then((data) => {
-        const { passed, failed } = calculateResults(data);
+        const newResults = calculateResults(data);
+        const newStartTime = data.stats?.startTime;
 
-        // ✅ Show passed count on badge
-        chrome.action.setBadgeText({ text: `Test` });
+        // Store the timestamp directly from the file
+        if (newStartTime) {
+          chrome.storage.local.set({
+            lastResults: newResults,
+            lastUpdated: newStartTime
+          });
+        }
 
-        // ✅ Badge color: green if all passed, red if any failed
+        // Update badge (static text: "Test")
+        chrome.action.setBadgeText({ text: "Test" });
+
         chrome.action.setBadgeBackgroundColor({
-          color: failed > 0 ? "#FF1744" : "#00C853"
+          color: newResults.failed > 0 ? "#FF1744" : "#00C853"
         });
 
-        // Optional white text for better visibility
         chrome.action.setBadgeTextColor?.({ color: "#FFFFFF" });
 
-        // Optional icon refresh
         chrome.action.setIcon({
           path: {
             "16": "icons/icon16.png",
@@ -81,7 +82,7 @@ chrome.runtime.onStartup?.addListener(fetchAndUpdateBadge);
 // Refresh badge every 5 minutes
 setInterval(fetchAndUpdateBadge, 5 * 60 * 1000);
 
-// Optional: Refresh badge immediately if popup saves a new URL
+// Allow popup to trigger immediate badge refresh
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === "refreshBadge") {
     fetchAndUpdateBadge();

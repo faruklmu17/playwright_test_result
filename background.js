@@ -31,6 +31,8 @@ function fetchAndUpdateBadge() {
       return;
     }
 
+    console.log("🔁 Fetching and updating badge...");
+
     fetch(testResultFileUrl)
       .then((response) => {
         if (!response.ok) throw new Error("Failed to fetch test results");
@@ -40,7 +42,7 @@ function fetchAndUpdateBadge() {
         const newResults = calculateResults(data);
         const newStartTime = data.stats?.startTime;
 
-        // Store the timestamp directly from the file
+        // Store timestamp and results
         if (newStartTime) {
           chrome.storage.local.set({
             lastResults: newResults,
@@ -48,8 +50,12 @@ function fetchAndUpdateBadge() {
           });
         }
 
-        // Update badge (static text: "Test")
-        chrome.action.setBadgeText({ text: "Test" });
+        // 🔁 Set dynamic badge text
+        const badgeText = newResults.failed > 0
+          ? `${newResults.failed}❌`
+          : `${newResults.passed}`;
+
+        chrome.action.setBadgeText({ text: badgeText });
 
         chrome.action.setBadgeBackgroundColor({
           color: newResults.failed > 0 ? "#FF1744" : "#00C853"
@@ -73,16 +79,26 @@ function fetchAndUpdateBadge() {
   });
 }
 
-// Run on install/update
-chrome.runtime.onInstalled.addListener(fetchAndUpdateBadge);
+// Run once on install/update
+chrome.runtime.onInstalled.addListener(() => {
+  fetchAndUpdateBadge();
+  chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
+});
 
-// Run on browser startup
-chrome.runtime.onStartup?.addListener(fetchAndUpdateBadge);
+// Also run on browser startup
+chrome.runtime.onStartup?.addListener(() => {
+  fetchAndUpdateBadge();
+  chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
+});
 
-// Refresh badge every 5 minutes
-setInterval(fetchAndUpdateBadge, 5 * 60 * 1000);
+// ✅ Use chrome.alarms for reliable recurring updates
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === "refreshResults") {
+    fetchAndUpdateBadge();
+  }
+});
 
-// Allow popup to trigger immediate badge refresh
+// Allow popup to manually trigger badge refresh
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === "refreshBadge") {
     fetchAndUpdateBadge();

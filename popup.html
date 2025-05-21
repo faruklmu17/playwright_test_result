@@ -8,7 +8,7 @@
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       width: 320px;
-      height: 400px;
+      height: 420px;
       overflow-y: auto;
       margin: 0;
       padding: 0;
@@ -48,7 +48,7 @@
       margin-bottom: 10px;
     }
 
-    #save {
+    #save, #refresh {
       width: 100%;
       padding: 10px;
       border: none;
@@ -57,16 +57,26 @@
       font-weight: bold;
       border-radius: 6px;
       cursor: pointer;
+      margin-bottom: 8px;
     }
 
-    #save:hover {
+    #save:hover, #refresh:hover {
       background: linear-gradient(135deg, #5a75e8, #9459da);
+    }
+
+    .tooltip {
+      font-size: 12px;
+      color: #888;
+      margin-top: -5px;
+      margin-bottom: 10px;
     }
 
     .stats {
       margin-top: 20px;
       display: flex;
       justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
     .stat-box {
@@ -86,6 +96,10 @@
       background-color: #F44336;
     }
 
+    .flaky {
+      background-color: #FFA500;
+    }
+
     .loading {
       margin-top: 15px;
       font-size: 14px;
@@ -94,47 +108,10 @@
     }
 
     .timestamp {
-      margin-top: 10px;
       text-align: center;
+      margin-top: 10px;
       font-size: 12px;
       color: #666;
-    }
-
-    .badge-preview {
-      margin-top: 15px;
-      text-align: center;
-      padding: 8px;
-      font-size: 18px;
-      font-weight: bold;
-      border-radius: 6px;
-    }
-
-    .results-card {
-      margin-top: 20px;
-    }
-
-    .results-header {
-      font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 10px;
-      text-align: center;
-    }
-
-    .results-body {
-      padding: 10px;
-    }
-
-    .total {
-      text-align: center;
-      font-weight: 500;
-      margin-top: 10px;
-    }
-
-    .error {
-      text-align: center;
-      color: red;
-      font-size: 14px;
-      margin-top: 20px;
     }
   </style>
 </head>
@@ -148,6 +125,8 @@
       <label for="jsonUrl">Raw JSON URL</label>
       <input id="jsonUrl" type="text" placeholder="Paste your GitHub raw JSON URL here" />
       <button id="save">Save</button>
+      <button id="refresh">🔄 Refresh</button>
+      <div class="tooltip">⚠️ Sometimes results may be cached. Click "Refresh" to manually update.</div>
     </div>
 
     <div id="results" class="loading">Loading test results...</div>

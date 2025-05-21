@@ -1,7 +1,8 @@
-// Function to calculate the number of passed and failed tests from Playwright JSON
+// Function to calculate the number of passed, failed, and flaky tests from Playwright JSON
 function calculateResults(data) {
   let passed = 0;
   let failed = 0;
+  let flaky = 0;
 
   if (data.suites && Array.isArray(data.suites)) {
     data.suites.forEach((suite) => {
@@ -9,14 +10,15 @@ function calculateResults(data) {
         spec.tests?.forEach((test) => {
           test.results?.forEach((result) => {
             if (result.status === "passed") passed++;
-            if (result.status === "failed") failed++;
+            else if (result.status === "failed") failed++;
+            else if (result.status === "flaky") flaky++;
           });
         });
       });
     });
   }
 
-  return { passed, failed };
+  return { passed, failed, flaky };
 }
 
 // Fetch and update badge using data.stats.startTime
@@ -33,7 +35,7 @@ function fetchAndUpdateBadge() {
 
     console.log("🔁 Fetching and updating badge...");
 
-    fetch(testResultFileUrl)
+    fetch(`${testResultFileUrl}?_=${Date.now()}`) // cache-bypass
       .then((response) => {
         if (!response.ok) throw new Error("Failed to fetch test results");
         return response.json();
@@ -50,7 +52,7 @@ function fetchAndUpdateBadge() {
           });
         }
 
-        // 🔁 Set dynamic badge text
+        // Show passed tests only on badge if there are no failures
         const badgeText = newResults.failed > 0
           ? `${newResults.failed}❌`
           : `${newResults.passed}`;

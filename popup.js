@@ -1,6 +1,7 @@
 function calculateResults(data) {
   let passed = 0;
   let failed = 0;
+  let flaky = 0;
 
   if (data.suites && Array.isArray(data.suites)) {
     data.suites.forEach((suite) => {
@@ -9,13 +10,14 @@ function calculateResults(data) {
           test.results?.forEach((result) => {
             if (result.status === "passed") passed++;
             else if (result.status === "failed") failed++;
+            else if (result.status === "flaky") flaky++;
           });
         });
       });
     });
   }
 
-  return { passed, failed };
+  return { passed, failed, flaky };
 }
 
 function formatTimeAgo(isoString) {
@@ -30,8 +32,8 @@ function formatTimeAgo(isoString) {
   return `${mins} minutes ago`;
 }
 
-function updateUI({ passed, failed }, startTime = null) {
-  const total = passed + failed;
+function updateUI({ passed, failed, flaky }, startTime = null) {
+  const total = passed + failed + flaky;
   const badgeColor = failed > 0 ? "#F44336" : "#4CAF50";
 
   const timestamp = startTime
@@ -52,6 +54,7 @@ function updateUI({ passed, failed }, startTime = null) {
         <div class="stats">
           <div class="stat-box passed">${passed} Passed</div>
           <div class="stat-box failed">${failed} Failed</div>
+          ${flaky > 0 ? `<div class="stat-box flaky">${flaky} Flaky</div>` : ""}
         </div>
         <div class="total">Total: ${total} tests</div>
         ${timestamp}
@@ -70,7 +73,7 @@ function showMessage(message, isError = false) {
   `;
 }
 
-function fetchTestResults(url) {
+function fetchTestResults(url, forceRefresh = false) {
   if (!url || !url.startsWith("http")) {
     showMessage("Invalid or missing URL.", true);
     return;
@@ -78,7 +81,9 @@ function fetchTestResults(url) {
 
   showMessage("Loading test results...");
 
-  fetch(url)
+  const fetchUrl = forceRefresh ? `${url}?_=${Date.now()}` : url;
+
+  fetch(fetchUrl)
     .then((res) => {
       if (!res.ok) throw new Error("Failed to fetch test results");
       return res.json();
@@ -96,6 +101,7 @@ function fetchTestResults(url) {
 
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("jsonUrl");
+  const refreshBtn = document.getElementById("refresh");
 
   chrome.storage.sync.get("testJsonUrl", (result) => {
     const savedUrl = result.testJsonUrl;
@@ -105,6 +111,16 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       showMessage("Please enter a GitHub raw JSON URL.");
     }
+  });
+
+  refreshBtn.addEventListener("click", () => {
+    const url = document.getElementById("jsonUrl").value.trim();
+    if (!url.startsWith("http")) {
+      alert("Please enter a valid URL.");
+      return;
+    }
+    fetchTestResults(url, true); // Force bypass cache
+    chrome.runtime.sendMessage({ type: "refreshBadge" });
   });
 });
 
@@ -117,7 +133,7 @@ document.getElementById("save").addEventListener("click", () => {
   }
 
   chrome.storage.sync.set({ testJsonUrl: input }, () => {
-    fetchTestResults(input);
+    fetchTestResults(input, true); // Also refresh when saving
     chrome.runtime.sendMessage({ type: "refreshBadge" });
   });
 });

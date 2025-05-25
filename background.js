@@ -1,7 +1,8 @@
-// Function to calculate the number of passed and failed tests from Playwright JSON
+// Function to calculate the number of passed, failed, and flaky tests from Playwright JSON
 function calculateResults(data) {
   let passed = 0;
   let failed = 0;
+  let flaky = 0;
 
   if (data.suites && Array.isArray(data.suites)) {
     data.suites.forEach((suite) => {
@@ -9,14 +10,15 @@ function calculateResults(data) {
         spec.tests?.forEach((test) => {
           test.results?.forEach((result) => {
             if (result.status === "passed") passed++;
-            if (result.status === "failed") failed++;
+            else if (result.status === "failed") failed++;
+            else if (result.status === "flaky") flaky++;
           });
         });
       });
     });
   }
 
-  return { passed, failed };
+  return { passed, failed, flaky };
 }
 
 // Fetch and update badge using data.stats.startTime
@@ -24,18 +26,19 @@ function fetchAndUpdateBadge() {
   chrome.storage.sync.get("testJsonUrl", (result) => {
     const testResultFileUrl = result.testJsonUrl;
 
+    // Skip fetch if no valid URL is set
     if (!testResultFileUrl || !testResultFileUrl.startsWith("http")) {
-      console.warn("No valid test result URL set.");
       chrome.action.setBadgeText({ text: "?" });
       chrome.action.setBadgeBackgroundColor({ color: "gray" });
       return;
     }
 
-    console.log("🔁 Fetching and updating badge...");
+    console.log("🔁 Fetching and updating badge from:", testResultFileUrl);
 
-    fetch(testResultFileUrl)
+    // Force fresh fetch by appending a cache-busting timestamp
+    fetch(`${testResultFileUrl}?_=${Date.now()}`)
       .then((response) => {
-        if (!response.ok) throw new Error("Failed to fetch test results");
+        if (!response.ok) throw new Error("Non-200 HTTP response");
         return response.json();
       })
       .then((data) => {
@@ -50,17 +53,15 @@ function fetchAndUpdateBadge() {
           });
         }
 
-        // 🔁 Set dynamic badge text
+        // Badge logic: ignore flaky, only show failed or passed
         const badgeText = newResults.failed > 0
           ? `${newResults.failed}❌`
           : `${newResults.passed}`;
 
         chrome.action.setBadgeText({ text: badgeText });
-
         chrome.action.setBadgeBackgroundColor({
           color: newResults.failed > 0 ? "#FF1744" : "#00C853"
         });
-
         chrome.action.setBadgeTextColor?.({ color: "#FFFFFF" });
 
         chrome.action.setIcon({
@@ -72,28 +73,31 @@ function fetchAndUpdateBadge() {
         });
       })
       .catch((error) => {
-        console.error("Error loading test results:", error);
+        console.warn("⚠️ Fetch failed: unable to retrieve test results.");
+        console.error("Reason:", error.message);
         chrome.action.setBadgeText({ text: "?" });
         chrome.action.setBadgeBackgroundColor({ color: "gray" });
       });
   });
 }
 
-// Run once on install/update
+// Run on install/update
 chrome.runtime.onInstalled.addListener(() => {
   fetchAndUpdateBadge();
-  chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
 });
 
-// Also run on browser startup
+// Run on browser startup
 chrome.runtime.onStartup?.addListener(() => {
   fetchAndUpdateBadge();
-  chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
 });
 
-// ✅ Use chrome.alarms for reliable recurring updates
+// 🔁 Ensure alarm always exists (even after manual reload)
+chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
+
+// ✅ Handle alarm every 5 minutes
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "refreshResults") {
+    console.log("⏰ Alarm triggered: refreshing badge...");
     fetchAndUpdateBadge();
   }
 });

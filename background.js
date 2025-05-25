@@ -26,18 +26,19 @@ function fetchAndUpdateBadge() {
   chrome.storage.sync.get("testJsonUrl", (result) => {
     const testResultFileUrl = result.testJsonUrl;
 
+    // Skip fetch if no valid URL is set
     if (!testResultFileUrl || !testResultFileUrl.startsWith("http")) {
-      console.warn("No valid test result URL set.");
       chrome.action.setBadgeText({ text: "?" });
       chrome.action.setBadgeBackgroundColor({ color: "gray" });
       return;
     }
 
-    console.log("🔁 Fetching and updating badge...");
+    console.log("🔁 Fetching and updating badge from:", testResultFileUrl);
 
-    fetch(`${testResultFileUrl}?_=${Date.now()}`) // cache-bypass
+    // Force fresh fetch by appending a cache-busting timestamp
+    fetch(`${testResultFileUrl}?_=${Date.now()}`)
       .then((response) => {
-        if (!response.ok) throw new Error("Failed to fetch test results");
+        if (!response.ok) throw new Error("Non-200 HTTP response");
         return response.json();
       })
       .then((data) => {
@@ -52,17 +53,15 @@ function fetchAndUpdateBadge() {
           });
         }
 
-        // Show passed tests only on badge if there are no failures
+        // Badge logic: ignore flaky, only show failed or passed
         const badgeText = newResults.failed > 0
           ? `${newResults.failed}❌`
           : `${newResults.passed}`;
 
         chrome.action.setBadgeText({ text: badgeText });
-
         chrome.action.setBadgeBackgroundColor({
           color: newResults.failed > 0 ? "#FF1744" : "#00C853"
         });
-
         chrome.action.setBadgeTextColor?.({ color: "#FFFFFF" });
 
         chrome.action.setIcon({
@@ -74,28 +73,31 @@ function fetchAndUpdateBadge() {
         });
       })
       .catch((error) => {
-        console.error("Error loading test results:", error);
+        console.warn("⚠️ Fetch failed: unable to retrieve test results.");
+        console.error("Reason:", error.message);
         chrome.action.setBadgeText({ text: "?" });
         chrome.action.setBadgeBackgroundColor({ color: "gray" });
       });
   });
 }
 
-// Run once on install/update
+// Run on install/update
 chrome.runtime.onInstalled.addListener(() => {
   fetchAndUpdateBadge();
-  chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
 });
 
-// Also run on browser startup
+// Run on browser startup
 chrome.runtime.onStartup?.addListener(() => {
   fetchAndUpdateBadge();
-  chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
 });
 
-// ✅ Use chrome.alarms for reliable recurring updates
+// 🔁 Ensure alarm always exists (even after manual reload)
+chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
+
+// ✅ Handle alarm every 5 minutes
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "refreshResults") {
+    console.log("⏰ Alarm triggered: refreshing badge...");
     fetchAndUpdateBadge();
   }
 });

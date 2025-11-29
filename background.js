@@ -106,16 +106,19 @@ function fetchAndUpdateBadge() {
 
 // Run on install/update
 chrome.runtime.onInstalled.addListener(() => {
+  console.log("🚀 Extension installed/updated");
+  // Create alarm on install
+  chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
   fetchAndUpdateBadge();
 });
 
 // Run on browser startup
-chrome.runtime.onStartup?.addListener(() => {
+chrome.runtime.onStartup.addListener(() => {
+  console.log("🚀 Browser started");
+  // Ensure alarm exists on startup
+  chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
   fetchAndUpdateBadge();
 });
-
-// 🔁 Ensure alarm always exists (even after manual reload)
-chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
 
 // ✅ Handle alarm every 5 minutes
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -129,5 +132,13 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === "refreshBadge") {
     fetchAndUpdateBadge();
+  }
+});
+
+// 🔁 Ensure alarm exists when service worker wakes up
+chrome.alarms.get("refreshResults", (alarm) => {
+  if (!alarm) {
+    console.log("⚠️ Alarm not found, creating it...");
+    chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
   }
 });

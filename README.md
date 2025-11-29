@@ -135,6 +135,28 @@ Badge inspired by GitHub Actions, test dashboards, and everyday QA tooling.
 
 ---
 
+## 🐛 Troubleshooting
+
+### Extension not updating after code changes?
+
+Chrome can cache the service worker aggressively. If you've made changes to the extension code and it's not reflecting:
+
+**Quick Fix:**
+1. Go to `chrome://extensions/`
+2. **Toggle OFF** the extension (disable it)
+3. **Toggle ON** the extension (enable it)
+4. Click the **refresh icon** on the extension card
+5. **Close and reopen the popup**
+
+**Full Reload (if quick fix doesn't work):**
+1. Go to `chrome://extensions/`
+2. Click **Remove** on the extension
+3. Click **Load unpacked** and select the extension folder again
+
+This forces Chrome to reload all JavaScript files completely.
+
+---
+
 ## 💡 Future Improvements (Feel free to contribute!)
 
 * Add notification when failures are detected

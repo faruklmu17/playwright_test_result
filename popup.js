@@ -1,21 +1,44 @@
+// Counts unique test specs (not per-browser runs)
 function calculateResults(data) {
-  let passed = 0;
-  let failed = 0;
-  let flaky = 0;
+  // Use a map to deduplicate specs by file + line + title
+  const specMap = new Map();
 
   if (data.suites && Array.isArray(data.suites)) {
     data.suites.forEach((suite) => {
       suite.specs?.forEach((spec) => {
-        spec.tests?.forEach((test) => {
-          test.results?.forEach((result) => {
-            if (result.status === "passed") passed++;
-            else if (result.status === "failed") failed++;
-            else if (result.status === "flaky") flaky++;
-          });
-        });
+        const key = `${spec.file}:${spec.line}:${spec.title}`;
+
+        if (!specMap.has(key)) {
+          specMap.set(key, { ok: true, flaky: false, failed: false });
+        }
+
+        const entry = specMap.get(key);
+
+        // Check if any test in this spec is flaky
+        const hasFlaky = spec.tests?.some((test) => test.status === "flaky");
+        // Check if any test in this spec failed
+        const hasFailed = spec.tests?.some((test) => test.status === "unexpected");
+
+        if (hasFlaky) entry.flaky = true;
+        if (hasFailed || spec.ok === false) entry.failed = true;
+        if (spec.ok === false) entry.ok = false;
       });
     });
   }
+
+  let passed = 0;
+  let failed = 0;
+  let flaky = 0;
+
+  specMap.forEach((entry) => {
+    if (entry.flaky) {
+      flaky++;
+    } else if (entry.failed || !entry.ok) {
+      failed++;
+    } else {
+      passed++;
+    }
+  });
 
   return { passed, failed, flaky };
 }

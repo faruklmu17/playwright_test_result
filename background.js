@@ -1,48 +1,4 @@
-// Function to calculate the number of passed, failed, and flaky tests from Playwright JSON
-// Counts unique test specs (not per-browser runs)
-function calculateResults(data) {
-  // Use a map to deduplicate specs by file + line + title
-  const specMap = new Map();
-
-  if (data.suites && Array.isArray(data.suites)) {
-    data.suites.forEach((suite) => {
-      suite.specs?.forEach((spec) => {
-        const key = `${spec.file}:${spec.line}:${spec.title}`;
-
-        if (!specMap.has(key)) {
-          specMap.set(key, { ok: true, flaky: false, failed: false });
-        }
-
-        const entry = specMap.get(key);
-
-        // Check if any test in this spec is flaky
-        const hasFlaky = spec.tests?.some((test) => test.status === "flaky");
-        // Check if any test in this spec failed
-        const hasFailed = spec.tests?.some((test) => test.status === "unexpected");
-
-        if (hasFlaky) entry.flaky = true;
-        if (hasFailed || spec.ok === false) entry.failed = true;
-        if (spec.ok === false) entry.ok = false;
-      });
-    });
-  }
-
-  let passed = 0;
-  let failed = 0;
-  let flaky = 0;
-
-  specMap.forEach((entry) => {
-    if (entry.flaky) {
-      flaky++;
-    } else if (entry.failed || !entry.ok) {
-      failed++;
-    } else {
-      passed++;
-    }
-  });
-
-  return { passed, failed, flaky };
-}
+import { calculateResults } from './utils.js';
 
 // Fetch and update badge using data.stats.startTime
 function fetchAndUpdateBadge() {
@@ -76,10 +32,8 @@ function fetchAndUpdateBadge() {
           });
         }
 
-        // Badge logic: ignore flaky, only show failed or passed
-        const badgeText = newResults.failed > 0
-          ? `${newResults.failed}❌`
-          : `${newResults.passed}`;
+        // Badge logic: Show Passed/Failed count
+        const badgeText = `${newResults.passed}/${newResults.failed}`;
 
         chrome.action.setBadgeText({ text: badgeText });
         chrome.action.setBadgeBackgroundColor({

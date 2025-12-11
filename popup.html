@@ -1,137 +1,35 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Playwright Test Results</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      width: 320px;
-      height: 420px;
-      overflow-y: auto;
-      margin: 0;
-      padding: 0;
-      background-color: #f9f9f9;
-      color: #333;
-    }
-
-    header {
-      background: linear-gradient(135deg, #6e8efb, #a777e3);
-      color: white;
-      padding: 15px;
-      text-align: center;
-      border-radius: 0 0 10px 10px;
-    }
-
-    h1 {
-      font-size: 18px;
-      margin: 0;
-    }
-
-    .container {
-      padding: 15px;
-    }
-
-    .url-box label {
-      display: block;
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 5px;
-    }
-
-    .url-box input {
-      width: 100%;
-      padding: 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      margin-bottom: 10px;
-    }
-
-    #save, #refresh {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      background: linear-gradient(135deg, #6e8efb, #a777e3);
-      color: white;
-      font-weight: bold;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-bottom: 8px;
-    }
-
-    #save:hover, #refresh:hover {
-      background: linear-gradient(135deg, #5a75e8, #9459da);
-    }
-
-    .tooltip {
-      font-size: 12px;
-      color: #888;
-      margin-top: -5px;
-      margin-bottom: 10px;
-    }
-
-    .stats {
-      margin-top: 20px;
-      display: flex;
-      justify-content: space-around;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .stat-box {
-      padding: 10px;
-      border-radius: 8px;
-      text-align: center;
-      color: white;
-      width: 80px;
-      font-weight: bold;
-    }
-
-    .passed {
-      background-color: #4CAF50;
-    }
-
-    .failed {
-      background-color: #F44336;
-    }
-
-    .flaky {
-      background-color: #FFA500;
-    }
-
-    .loading {
-      margin-top: 15px;
-      font-size: 14px;
-      text-align: center;
-      color: #888;
-    }
-
-    .timestamp {
-      text-align: center;
-      margin-top: 10px;
-      font-size: 12px;
-      color: #666;
-    }
-  </style>
+  <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
   <header>
-    <h1>Playwright Test Results</h1>
+    <h1>Test Results</h1>
   </header>
 
   <div class="container">
     <div class="url-box">
-      <label for="jsonUrl">Raw JSON URL</label>
-      <input id="jsonUrl" type="text" placeholder="Paste your GitHub raw JSON URL here" />
-      <button id="save">Save</button>
-      <button id="refresh">🔄 Refresh</button>
-      <div class="tooltip">⚠️ Sometimes results may be cached. Click "Refresh" to manually update.</div>
+      <label for="jsonUrl">GitHub Raw JSON URL</label>
+      <input id="jsonUrl" type="text" placeholder="https://raw.githubusercontent.com/..." />
+
+      <div class="actions">
+        <button id="save">Save URL</button>
+        <button id="refresh">Refresh</button>
+      </div>
+
+      <div class="tooltip">Results are cached. Refresh to force update.</div>
     </div>
 
-    <div id="results" class="loading">Loading test results...</div>
+    <div id="results" class="loading">Waiting for data...</div>
   </div>
 
-  <script src="popup.js"></script>
+  <script type="module" src="popup.js"></script>
 </body>
+
 </html>

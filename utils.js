@@ -7,6 +7,16 @@
  * @returns {Object} { passed, failed, flaky }
  */
 export function calculateResults(data) {
+  // Check if this is the new summary format (v1.2+)
+  if (data.isSummary) {
+    return {
+      passed: data.passed || 0,
+      failed: data.failed || 0,
+      flaky: data.flaky || 0
+    };
+  }
+
+  // Fallback for original Playwright JSON format
   // Use a map to deduplicate specs by file + line + title
   const specMap = new Map();
 
@@ -61,7 +71,7 @@ export function formatTimeAgo(isoString) {
   const now = new Date();
   const then = new Date(isoString);
   const diffMs = now - then;
-  
+
   const seconds = Math.floor(diffMs / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);

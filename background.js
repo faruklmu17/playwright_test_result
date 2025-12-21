@@ -22,7 +22,7 @@ function fetchAndUpdateBadge() {
       })
       .then((data) => {
         const newResults = calculateResults(data);
-        const newStartTime = data.stats?.startTime;
+        const newStartTime = data.startTime || data.stats?.startTime;
 
         // Store timestamp and results
         if (newStartTime) {
@@ -33,12 +33,17 @@ function fetchAndUpdateBadge() {
         }
 
         // Badge logic: Show Passed/Failed count
-        const badgeText = `${newResults.passed}/${newResults.failed}`;
+        const total = newResults.passed + newResults.failed + newResults.flaky;
+        let badgeText = `${newResults.passed}/${newResults.failed}`;
+        let badgeColor = newResults.failed > 0 ? "#FF1744" : "#00C853";
+
+        if (total === 0) {
+          badgeText = "?";
+          badgeColor = "#9E9E9E"; // Gray for unknown/empty
+        }
 
         chrome.action.setBadgeText({ text: badgeText });
-        chrome.action.setBadgeBackgroundColor({
-          color: newResults.failed > 0 ? "#FF1744" : "#00C853"
-        });
+        chrome.action.setBadgeBackgroundColor({ color: badgeColor });
         chrome.action.setBadgeTextColor?.({ color: "#FFFFFF" });
 
         chrome.action.setIcon({
@@ -61,8 +66,8 @@ function fetchAndUpdateBadge() {
 // Run on install/update
 chrome.runtime.onInstalled.addListener(() => {
   console.log("🚀 Extension installed/updated");
-  // Create alarm on install
-  chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
+  // Create alarm on install (1 minute for responsiveness)
+  chrome.alarms.create("refreshResults", { periodInMinutes: 1 });
   fetchAndUpdateBadge();
 });
 
@@ -70,11 +75,11 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onStartup.addListener(() => {
   console.log("🚀 Browser started");
   // Ensure alarm exists on startup
-  chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
+  chrome.alarms.create("refreshResults", { periodInMinutes: 1 });
   fetchAndUpdateBadge();
 });
 
-// ✅ Handle alarm every 5 minutes
+// ✅ Handle alarm every minute
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "refreshResults") {
     console.log("⏰ Alarm triggered: refreshing badge...");
@@ -91,8 +96,8 @@ chrome.runtime.onMessage.addListener((message) => {
 
 // 🔁 Ensure alarm exists when service worker wakes up
 chrome.alarms.get("refreshResults", (alarm) => {
-  if (!alarm) {
-    console.log("⚠️ Alarm not found, creating it...");
-    chrome.alarms.create("refreshResults", { periodInMinutes: 5 });
+  if (!alarm || alarm.periodInMinutes !== 1) {
+    console.log("⏰ Setting/Updating alarm to 1 minute...");
+    chrome.alarms.create("refreshResults", { periodInMinutes: 1 });
   }
 });

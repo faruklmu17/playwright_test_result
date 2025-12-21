@@ -2,7 +2,6 @@ import { calculateResults, formatTimeAgo } from './utils.js';
 
 function updateUI({ passed, failed, flaky }, startTime = null) {
   const total = passed + failed + flaky;
-  const badgeColor = failed > 0 ? "#F44336" : "#4CAF50";
 
   const timestamp = startTime
     ? `<div class="timestamp">Last updated: ${formatTimeAgo(startTime)}</div>`
@@ -11,9 +10,21 @@ function updateUI({ passed, failed, flaky }, startTime = null) {
   const resultsDiv = document.getElementById("results");
 
   if (total === 0) {
-    resultsDiv.innerHTML = `<div class='loading'>No test results found in the file.</div>`;
+    resultsDiv.innerHTML = `
+      <div class="results-card">
+        <div class="results-header warning">⚠️ No Tests Detected</div>
+        <div class="results-body">
+          <p class="empty-state-msg">This usually indicates a syntax error or the test runner crashed before starting.</p>
+          <div class="meta-info">
+            ${timestamp}
+          </div>
+        </div>
+      </div>
+    `;
     return;
   }
+
+  const badgeColor = failed > 0 ? "#F44336" : "#4CAF50";
 
   resultsDiv.innerHTML = `
     <div class="results-card">
@@ -66,7 +77,7 @@ function fetchTestResults(url, forceRefresh = false) {
     })
     .then((data) => {
       const newResults = calculateResults(data);
-      const startTime = data.stats?.startTime || null;
+      const startTime = data.startTime || data.stats?.startTime || null;
       updateUI(newResults, startTime);
 
       // Opportunistically update cache
@@ -75,6 +86,8 @@ function fetchTestResults(url, forceRefresh = false) {
           lastResults: newResults,
           lastUpdated: startTime
         });
+        // Sync the badge as soon as we have new data
+        chrome.runtime.sendMessage({ type: "refreshBadge" });
       }
     })
     .catch((err) => {
@@ -122,11 +135,19 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 document.getElementById("save").addEventListener("click", () => {
-  const input = document.getElementById("jsonUrl").value.trim();
+  let input = document.getElementById("jsonUrl").value.trim();
 
   if (!input.startsWith("http")) {
     alert("Please enter a valid URL.");
     return;
+  }
+
+  // Convert GitHub UI link to Raw link automatically
+  if (input.includes("github.com") && input.includes("/blob/")) {
+    input = input
+      .replace("github.com", "raw.githubusercontent.com")
+      .replace("/blob/", "/");
+    document.getElementById("jsonUrl").value = input;
   }
 
   chrome.storage.sync.set({ testJsonUrl: input }, () => {

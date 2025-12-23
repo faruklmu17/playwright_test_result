@@ -119,7 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Fetch fresh data (silently update UI if it changes)
       fetchTestResults(savedUrl);
     } else {
-      showMessage("Please enter a GitHub raw JSON URL.");
+      showMessage("Please enter a GitHub Raw or GitHub Pages URL.");
     }
   });
 

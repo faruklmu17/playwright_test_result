@@ -15,18 +15,18 @@
 
   <div class="container">
     <div class="url-box">
-      <label for="jsonUrl">GitHub Raw JSON URL</label>
-      <input id="jsonUrl" type="text" placeholder="https://raw.githubusercontent.com/..." />
+      <label for="jsonUrl">Results JSON URL (Raw or GitHub Pages)</label>
+      <input id="jsonUrl" type="text" placeholder="https://raw... or https://user.github.io/..." />
 
       <div class="actions">
         <button id="save">Save URL</button>
         <button id="refresh">Refresh</button>
       </div>
 
-      </div>
     </div>
+  </div>
 
-    <div id="results" class="loading">Waiting for data...</div>
+  <div id="results" class="loading">Waiting for data...</div>
   </div>
 
   <script type="module" src="popup.js"></script>

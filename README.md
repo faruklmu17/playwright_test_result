@@ -2,15 +2,16 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-A Chrome extension that displays **Playwright test results** from a lightweight summary JSON file hosted on GitHub (or any public URL). Version 1.2 introduces faster polling, summary file support, and improved error handling.
+A Chrome extension that displays **Playwright test results** from a lightweight summary JSON file hosted on GitHub (or any public URL). Version 1.3 adds support for private repositories via GitHub Pages and robust Manifest V3 architecture.
 
 ---
 
-## 📦 Features (v1.2)
+## 📦 Features (v1.3)
 
 - ✅ **Smart Badge**: Shows passed/failed count (e.g., `42/1`) directly on the extension icon.
+- ✅ **Private Repo Support**: Monitor private repositories by hosting your summary on GitHub Pages.
 - ✅ **New Summary Format**: Supports a lightweight `test-summary.json` for lightning-fast updates.
-- ✅ **Live Polling**: Auto-refreshes every **1 minute** (previously 5) to stay in sync with CI/CD.
+- ✅ **Live Polling**: Auto-refreshes every **1 minute** to stay in sync with CI/CD.
 - ✅ **Auto-Link Conversion**: Automatically converts GitHub UI links (`/blob/`) to raw links.
 - ✅ **Error Awareness**: Shows a Gray `?` badge and a "No Tests Detected" warning if your test run crashes or has a syntax error.
 - ✅ **Backward Compatible**: Still supports the full Playwright JSON report format.
@@ -44,7 +45,7 @@ chrome://extensions/
 
 ### ✅ Step 1: Generate a Summary File (Recommended)
 
-To get the most out of version 1.2, generate a lightweight summary file in your CI/CD pipeline or local scripts. The extension expects this format:
+To get the most out of version 1.3, generate a lightweight summary file in your CI/CD pipeline or local scripts. The extension expects this format:
 
 ```json
 {
@@ -90,7 +91,7 @@ It includes:
 
 ---
 
-## 📊 How It Works (v1.2)
+## 📊 How It Works (v1.3)
 
 * 🟩 **Green badge** = All tests passed (e.g., `5/0`).
 * 🟥 **Red badge** = One or more tests failed (e.g., `4/1`).

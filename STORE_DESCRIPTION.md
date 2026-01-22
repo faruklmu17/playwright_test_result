@@ -1,6 +1,6 @@
 Overview
 =======
-Playwright Test Results Badge is a lightweight Chrome extension that helps you quickly see your Playwright test status directly from your browser toolbar. Version 1.4 introduces support for AWS S3 and any cloud hosting provider, giving you complete flexibility in where you store your test results.
+Playwright Test Results Badge is a lightweight Chrome extension that helps you quickly see your Playwright test status directly from your browser toolbar. Version 1.4 introduces full AWS S3 support with comprehensive setup instructions, alongside existing GitHub Pages support, giving you complete flexibility in where you store your test results.
 
 Instead of opening CI dashboards or scrolling through logs, you get an instant visual summary of your test results that stays visible and automatically updated.
 
@@ -133,8 +133,44 @@ Step 4: Alternative - Deploy to AWS S3
 --------------------------------------------
 If you prefer AWS, you can deploy the results to an S3 bucket:
 
-1. Create a public S3 bucket (or configure CORS for private access).
-2. Create `.github/workflows/playwright.yml` with this content:
+1. Create an S3 bucket (e.g., "my-test-results")
+
+2. Configure S3 Bucket Permissions:
+   a) Go to your bucket → Permissions tab
+   b) Block public access → Edit → Uncheck all boxes → Save → Confirm
+   c) Bucket policy → Edit → Paste this policy (replace YOUR-BUCKET-NAME):
+
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
+        }
+    ]
+}
+
+   d) CORS configuration → Edit → Paste:
+
+[
+    {
+        "AllowedHeaders": ["*"],
+        "AllowedMethods": ["GET", "HEAD"],
+        "AllowedOrigins": ["*"],
+        "ExposeHeaders": [],
+        "MaxAgeSeconds": 3000
+    }
+]
+
+3. Set up AWS credentials in GitHub Secrets:
+   - AWS_ACCESS_KEY_ID
+   - AWS_SECRET_ACCESS_KEY
+   - AWS_DEFAULT_REGION (e.g., us-east-1)
+
+4. Create `.github/workflows/playwright.yml` with this content:
 
 name: Deploy Test Results to AWS S3
 on:
@@ -157,13 +193,14 @@ jobs:
       - name: Upload results to AWS S3
         if: always()
         run: |
-          aws s3 cp test-summary.json s3://your-bucket-name/results.json --acl public-read
+          aws s3 cp test-summary.json s3://YOUR-BUCKET-NAME/results.json --acl public-read --content-type application/json
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-1
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
-3. Use the S3 URL (e.g., https://your-bucket-name.s3.amazonaws.com/results.json) in the extension.
+5. Your S3 URL will be: https://YOUR-BUCKET-NAME.s3.REGION.amazonaws.com/results.json
+   Example: https://my-test-results.s3.us-east-2.amazonaws.com/results.json
 
 Step 5: Connect & Monitor
 ----------------------

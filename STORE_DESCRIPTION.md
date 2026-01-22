@@ -1,6 +1,6 @@
 Overview
 =======
-Playwright Test Results Badge is a lightweight Chrome extension that helps you quickly see your Playwright test status directly from your browser toolbar. Version 1.3 introduces support for private repositories via GitHub Pages, allowing you to monitor secure projects safely.
+Playwright Test Results Badge is a lightweight Chrome extension that helps you quickly see your Playwright test status directly from your browser toolbar. Version 1.4 introduces support for AWS S3 and any cloud hosting provider, giving you complete flexibility in where you store your test results.
 
 Instead of opening CI dashboards or scrolling through logs, you get an instant visual summary of your test results that stays visible and automatically updated.
 
@@ -129,11 +129,47 @@ jobs:
         if: always()
         uses: actions/deploy-pages@v4
 
-Step 4: Connect & Monitor
+Step 4: Alternative - Deploy to AWS S3
+--------------------------------------------
+If you prefer AWS, you can deploy the results to an S3 bucket:
+
+1. Create a public S3 bucket (or configure CORS for private access).
+2. Create `.github/workflows/playwright.yml` with this content:
+
+name: Deploy Test Results to AWS S3
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+      - name: Run Playwright tests
+        run: npx playwright test
+      - name: Upload results to AWS S3
+        if: always()
+        run: |
+          aws s3 cp test-summary.json s3://your-bucket-name/results.json --acl public-read
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+
+3. Use the S3 URL (e.g., https://your-bucket-name.s3.amazonaws.com/results.json) in the extension.
+
+Step 5: Connect & Monitor
 ----------------------
-1. In your Repo Settings > Pages, set source to "Deploy from a branch" and select "main".
-2. After the workflow runs, copy your Pages URL (e.g. https://user.github.io/repo/results.json).
-3. Paste it into the extension and click Save!
+1. In the extension popup, paste your deployment URL (GitHub Pages or AWS S3).
+2. Click Save!
+
 
 Privacy and Security
 ===================

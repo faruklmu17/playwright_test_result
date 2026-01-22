@@ -1,60 +1,46 @@
-************************************************************
-OVERVIEW
-************************************************************
-Playwright Test Results Badge is a lightweight Chrome extension that helps you quickly see your Playwright test status directly from your browser toolbar. 
-
-Version 1.3 introduces full support for private repositories via GitHub Pages, allowing you to monitor secure projects safely without sharing sensitive credentials.
+Overview
+=======
+Playwright Test Results Badge is a lightweight Chrome extension that helps you quickly see your Playwright test status directly from your browser toolbar. Version 1.4 introduces support for AWS S3 and any cloud hosting provider, giving you complete flexibility in where you store your test results.
 
 Instead of opening CI dashboards or scrolling through logs, you get an instant visual summary of your test results that stays visible and automatically updated.
 
-************************************************************
-IDEAL FOR
-************************************************************
+This extension is ideal for:
+
 • 👨‍💻 Developers & QA engineers
 • 🧪 Teams monitoring private CI/CD pipelines
 • 🎓 Students learning testing or DevOps
 • 📄 Anyone using Playwright with automated tests
 
-************************************************************
-WHY INSTALL THIS EXTENSION?
-************************************************************
+Why install this extension?
+
 • ✅ Instantly know if your tests passed or failed
 • ⏱️ Saves time by avoiding CI dashboards and logs
 • 🔄 Automatically refreshes every 1 minute
 • 🔒 Private Repo Support: Monitor secure projects using GitHub Pages
 • 🛡️ Privacy-first: no accounts, no tracking, no external servers
 
-************************************************************
-WHAT THE EXTENSION DOES
-************************************************************
+What the extension does
 
---- LIVE BADGE ON THE CHROME TOOLBAR ---
+Live badge on the Chrome toolbar:
+
 • 🟩 Green 42 / 0 means all tests passed
 • 🟥 Red 41 / 1 means one or more tests failed
 • ⬜ Gray ? means no tests detected (crash, sync error, or empty summary file)
 
 This lets you see project health at a glance, even while browsing other sites.
 
---- DETAILED POPUP VIEW ---
+Detailed popup view:
+
 • 📊 Total number of tests executed
-• ✅ Passed tests count
-• ❌ Failed tests count
+• ✅ Passed / ❌ Failed / ⚠️ Flaky counts
 • 🕒 Last updated timestamp
 • 🔄 Manual refresh button
 
-************************************************************
-QUICK SETUP GUIDE (6 STEPS)
-************************************************************
+Quick Setup Guide
+==============================
 
-STEP 1: INSTALL PLAYWRIGHT
-------------------------------------------------------------
-If starting fresh, run: "npm init playwright@latest"
-- Choose TypeScript
-- Choose "Add a GitHub Actions workflow: TRUE"
-- This creates an example test and a .yml file.
-
-STEP 2: CREATE THE SUMMARY REPORTER
-------------------------------------------------------------
+Step 1: Create the Summary Reporter
+------------------------------
 Create "summary-reporter.js" in your project root:
 
 const fs = require('fs');
@@ -79,8 +65,8 @@ class SummaryReporter {
 }
 module.exports = SummaryReporter;
 
-STEP 3: CONFIGURE PLAYWRIGHT
-------------------------------------------------------------
+Step 2: Configure Playwright
+------------------------------
 Update "playwright.config.ts" to include the reporter:
 
 reporters: [
@@ -89,9 +75,9 @@ reporters: [
   ['list']
 ],
 
-STEP 4: UPDATE CI WORKFLOW (SUPPORTS PRIVATE REPOS)
-------------------------------------------------------------
-Replace your ".github/workflows/playwright.yml" with this content:
+Step 3: Create CI Workflow (Supports Private Repos)
+--------------------------------------------
+Create ".github/workflows/playwright.yml" with this content:
 
 name: Deploy results.json to GitHub Pages
 on:
@@ -143,28 +129,53 @@ jobs:
         if: always()
         uses: actions/deploy-pages@v4
 
-STEP 5: INITIALIZE YOUR SUMMARY
-------------------------------------------------------------
-1. Run your tests locally one time: "npx playwright test"
-   (Tip: You can use the example tests that come with Playwright!)
-2. This creates the "test-summary.json" file.
-3. Commit and push ALL files (including the summary) to GitHub.
+Step 4: Alternative - Deploy to AWS S3
+--------------------------------------------
+If you prefer AWS, you can deploy the results to an S3 bucket:
 
-STEP 6: CONNECT & MONITOR
-------------------------------------------------------------
-1. In your Repo Settings > Pages, set source to "Deploy from a branch" and select "main".
-2. After the workflow runs, copy your Pages URL (e.g. https://user.github.io/repo/results.json).
-3. Paste it into the extension and click Save!
+1. Create a public S3 bucket (or configure CORS for private access).
+2. Create `.github/workflows/playwright.yml` with this content:
 
-************************************************************
-PRIVACY AND SECURITY
-************************************************************
+name: Deploy Test Results to AWS S3
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+      - name: Run Playwright tests
+        run: npx playwright test
+      - name: Upload results to AWS S3
+        if: always()
+        run: |
+          aws s3 cp test-summary.json s3://your-bucket-name/results.json --acl public-read
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+
+3. Use the S3 URL (e.g., https://your-bucket-name.s3.amazonaws.com/results.json) in the extension.
+
+Step 5: Connect & Monitor
+----------------------
+1. In the extension popup, paste your deployment URL (GitHub Pages or AWS S3).
+2. Click Save!
+
+
+Privacy and Security
+===================
 • 🔐 No accounts or tracking
 • 🚫 No external analytics servers
 • 🌍 Data stays in your browser
 • 📁 Permissions: storage (save URL) and alarms (auto-refresh)
 
 License: MIT
-************************************************************
-CREATED BY FARUK HASAN
-************************************************************

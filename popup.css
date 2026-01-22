@@ -111,6 +111,15 @@ button {
     font-size: 12px;
     cursor: pointer;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+button svg {
+    width: 14px;
+    height: 14px;
 }
 
 #save {

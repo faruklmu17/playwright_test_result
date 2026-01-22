@@ -46,21 +46,69 @@ function fetchAndUpdateBadge() {
         chrome.action.setBadgeBackgroundColor({ color: badgeColor });
         chrome.action.setBadgeTextColor?.({ color: "#FFFFFF" });
 
-        chrome.action.setIcon({
-          path: {
-            "16": "icons/icon16.png",
-            "48": "icons/icon48.png",
-            "128": "icons/icon128.png"
-          }
-        });
+        drawIcon(newResults.passed, newResults.failed, newResults.flaky);
       })
       .catch((error) => {
         console.warn("⚠️ Fetch failed: unable to retrieve test results.");
         console.error("Reason:", error.message);
         chrome.action.setBadgeText({ text: "?" });
         chrome.action.setBadgeBackgroundColor({ color: "gray" });
+        drawIcon(0, 0, 0); // Gray state
       });
   });
+}
+
+/**
+ * Draws a dynamic pie chart icon based on test results.
+ */
+function drawIcon(passed, failed, flaky) {
+  const canvas = new OffscreenCanvas(128, 128);
+  const ctx = canvas.getContext('2d');
+  const total = passed + failed + flaky;
+
+  // Clear canvas
+  ctx.clearRect(0, 0, 128, 128);
+
+  // Background circle
+  ctx.beginPath();
+  ctx.arc(64, 64, 60, 0, 2 * Math.PI);
+  ctx.fillStyle = '#f0f0f0';
+  ctx.fill();
+
+  if (total === 0) {
+    // Gray ring for unknown state
+    ctx.beginPath();
+    ctx.arc(64, 64, 50, 0, 2 * Math.PI);
+    ctx.lineWidth = 20;
+    ctx.strokeStyle = '#9E9E9E';
+    ctx.stroke();
+  } else {
+    let startAngle = -Math.PI / 2;
+
+    const drawSlice = (count, color) => {
+      if (count === 0) return;
+      const sliceAngle = (count / total) * 2 * Math.PI;
+      ctx.beginPath();
+      ctx.moveTo(64, 64);
+      ctx.arc(64, 64, 60, startAngle, startAngle + sliceAngle);
+      ctx.fillStyle = color;
+      ctx.fill();
+      startAngle += sliceAngle;
+    };
+
+    drawSlice(passed, '#00C853'); // Green
+    drawSlice(flaky, '#FFAB00');  // Orange/Amber
+    drawSlice(failed, '#FF1744'); // Red
+
+    // Inner circle for donut look (optional, but looks premium)
+    ctx.beginPath();
+    ctx.arc(64, 64, 30, 0, 2 * Math.PI);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+  }
+
+  const imageData = ctx.getImageData(0, 0, 128, 128);
+  chrome.action.setIcon({ imageData: imageData });
 }
 
 // Run on install/update

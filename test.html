@@ -440,8 +440,9 @@
                 The <strong>Playwright Test Results Badge</strong> is a lightweight Chrome extension designed to
                 eliminate that friction.
                 Instead of digging through 100MB logs, you get an instant visual summary of your test status directly in
-                your browser toolbar. <strong>New in v1.3:</strong> Full support for private repositories via GitHub
-                Pages.
+                your browser toolbar. <strong>New in v1.4:</strong> Full AWS S3 support with comprehensive setup
+                instructions, alongside existing GitHub Pages support, giving you complete flexibility in where you
+                store your test results.
             </p>
 
             <div class="feature-grid">
@@ -730,6 +731,123 @@ jobs:
                         <code>https://username.github.io/repo/results.json</code>) into the extension settings.
                     </p>
                 </div>
+            </div>
+        </section>
+
+        <section class="section-card">
+            <h2><i class="fab fa-aws"></i> Alternative: Deploy to AWS S3</h2>
+            <p>
+                If you prefer AWS over GitHub Pages, you can deploy your test results to an S3 bucket. This gives you
+                full control over your infrastructure and works great for teams already using AWS.
+            </p>
+
+            <h3>Step-by-Step AWS S3 Configuration</h3>
+            <div class="setup-steps">
+                <div class="setup-step">
+                    <h4>1. Create an S3 Bucket</h4>
+                    <p>Create a new S3 bucket (e.g., <code>my-test-results</code>) in your preferred AWS region.</p>
+                </div>
+
+                <div class="setup-step">
+                    <h4>2. Configure S3 Bucket Permissions</h4>
+                    <p><strong>a) Block Public Access:</strong> Go to your bucket → Permissions tab → Block public
+                        access → Edit → Uncheck all boxes → Save → Confirm</p>
+
+                    <p><strong>b) Bucket Policy:</strong> Go to Bucket policy → Edit → Paste this policy (replace
+                        YOUR-BUCKET-NAME):</p>
+                    <div class="code-container">
+                        <div class="code-label">S3 Bucket Policy</div>
+                        <pre><code>{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
+        }
+    ]
+}</code></pre>
+                    </div>
+
+                    <p><strong>c) CORS Configuration:</strong> Go to CORS configuration → Edit → Paste:</p>
+                    <div class="code-container">
+                        <div class="code-label">CORS Configuration</div>
+                        <pre><code>[
+    {
+        "AllowedHeaders": ["*"],
+        "AllowedMethods": ["GET", "HEAD"],
+        "AllowedOrigins": ["*"],
+        "ExposeHeaders": [],
+        "MaxAgeSeconds": 3000
+    }
+]</code></pre>
+                    </div>
+                </div>
+
+                <div class="setup-step">
+                    <h4>3. Set Up AWS Credentials in GitHub Secrets</h4>
+                    <p>Go to your repository → Settings → Secrets and variables → Actions → New repository secret</p>
+                    <p>Add these three secrets:</p>
+                    <ul style="list-style: disc; margin-left: 1.5rem; margin-bottom: 1rem;">
+                        <li><strong>AWS_ACCESS_KEY_ID</strong></li>
+                        <li><strong>AWS_SECRET_ACCESS_KEY</strong></li>
+                        <li><strong>AWS_DEFAULT_REGION</strong> (e.g., us-east-1)</li>
+                    </ul>
+                </div>
+
+                <div class="setup-step">
+                    <h4>4. Create AWS S3 Deployment Workflow</h4>
+                    <p>Create <code>.github/workflows/playwright.yml</code> with this content:</p>
+                    <div class="code-container">
+                        <div class="code-label">.github/workflows/playwright.yml</div>
+                        <pre><code>name: Deploy Test Results to AWS S3
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+      
+      - name: Run Playwright tests
+        run: npx playwright test
+      
+      - name: Upload results to AWS S3
+        if: always()
+        run: |
+          aws s3 cp test-summary.json s3://YOUR-BUCKET-NAME/results.json --acl public-read --content-type application/json
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}</code></pre>
+                    </div>
+                </div>
+
+                <div class="setup-step">
+                    <h4>5. Connect & Monitor</h4>
+                    <p>Your S3 URL will be: <code>https://YOUR-BUCKET-NAME.s3.REGION.amazonaws.com/results.json</code>
+                    </p>
+                    <p>Example: <code>https://my-test-results.s3.us-east-2.amazonaws.com/results.json</code></p>
+                    <p>Paste this URL into the extension popup and click Save!</p>
+                </div>
+            </div>
+
+            <div class="callout info">
+                <i class="fas fa-info-circle"></i> <strong>Note:</strong> The extension supports both GitHub Pages and
+                AWS S3 URLs. Choose whichever deployment method works best for your team's infrastructure.
             </div>
         </section>
 
